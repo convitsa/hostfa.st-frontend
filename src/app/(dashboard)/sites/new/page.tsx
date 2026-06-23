@@ -40,7 +40,7 @@ function isValidDomain(val: string) {
   return /^[a-zA-Z0-9]+([\-\.]{1}[a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$/.test(val);
 }
 
-export function NewSiteForm() {
+function NewSiteForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
@@ -184,7 +184,7 @@ export function NewSiteForm() {
     scale: 10,
   };
 
-  const limit = planLimits[currentPlan] || 1;
+  const limit = planLimits[currentPlan as keyof typeof planLimits] || 1;
   const isLimitReached = sitesCount >= limit;
 
   return (
