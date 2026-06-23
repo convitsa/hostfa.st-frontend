@@ -22,7 +22,7 @@ function getPasswordStrength(pwd: string) {
   if (pwd.length >= 6 && (/[0-9]/.test(pwd) || /[^A-Za-z0-9]/.test(pwd))) score = 2;
   if (pwd.length >= 8 && /[a-zA-Z]/.test(pwd) && /[0-9]/.test(pwd)) score = 3;
   if (pwd.length >= 10 && /[A-Z]/.test(pwd) && /[a-z]/.test(pwd) && /[0-9]/.test(pwd) && /[^A-Za-z0-9]/.test(pwd)) score = 4;
-  
+
   const labels = ["", "Weak", "Fair", "Good", "Strong"];
   return { score, label: labels[score] };
 }
@@ -220,9 +220,8 @@ export default function SettingsPage() {
                     {[1, 2, 3, 4].map((index) => (
                       <div
                         key={index}
-                        className={`h-full flex-1 rounded-full transition-all duration-300 ${
-                          index <= strength.score ? "bg-[#22C55E]" : "bg-[#222]"
-                        }`}
+                        className={`h-full flex-1 rounded-full transition-all duration-300 ${index <= strength.score ? "bg-[#22C55E]" : "bg-[#222]"
+                          }`}
                       />
                     ))}
                   </div>
@@ -342,11 +341,7 @@ export default function SettingsPage() {
           </Button>
         </Card>
 
-        {/* Version info block */}
-        <div className="flex items-center justify-between text-[10px] text-[#555] font-mono px-1">
-          <span>Client API: https://api.hostfa.st</span>
-          <span>Version: 0.1.0</span>
-        </div>
+
       </div>
 
       {/* Account Deletion Confirmation Modal */}
