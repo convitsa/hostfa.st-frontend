@@ -1,0 +1,463 @@
+"use client";
+
+import React, { useState, useEffect, useRef } from "react";
+import Link from "next/link";
+import Footer from "@/components/marketing/Footer";
+
+function ScrollReveal({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.05 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out ${
+        isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      } ${className}`}
+    >
+      {children}
+    </div>
+  );
+}
+
+export default function VsWebflowClient() {
+  const [activeSiteTab, setActiveSiteTab] = useState<1 | 3>(3);
+
+  // Math for 1 vs 3 sites Webflow cost projection
+  // Webflow Basic monthly is $25/mo.
+  const timelineData = activeSiteTab === 1 
+    ? [
+        { label: "1 Month", webflow: 25, hostfast: 3 },
+        { label: "6 Months", webflow: 150, hostfast: 18 },
+        { label: "1 Year", webflow: 300, hostfast: 36 },
+        { label: "2 Years", webflow: 600, hostfast: 72 },
+      ]
+    : [
+        { label: "1 Month", webflow: 75, hostfast: 8 },
+        { label: "6 Months", webflow: 450, hostfast: 48 },
+        { label: "1 Year", webflow: 900, hostfast: 96 },
+        { label: "2 Years", webflow: 1800, hostfast: 192 },
+      ];
+
+  const maxCost = activeSiteTab === 1 ? 600 : 1800;
+
+  return (
+    <div className="min-h-screen bg-[#0A0A0A] text-[#EDEDED] font-sans selection:bg-[#EDEDED] selection:text-[#0A0A0A] overflow-x-hidden">
+      
+      {/* NAVIGATION */}
+      <nav className="fixed top-0 left-0 right-0 h-12 bg-[#0A0A0A]/80 backdrop-blur border-b border-[#222] z-50 flex items-center justify-between px-4 md:px-8">
+        <Link href="/" className="font-mono font-semibold text-sm text-[#EDEDED] tracking-tight hover:opacity-85 select-none">
+          hostfa.st
+        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/login"
+            className="text-xs text-[#888] hover:text-[#EDEDED] px-3 py-1.5 transition-colors font-medium"
+            aria-label="Log in to hostfa.st"
+          >
+            Log in
+          </Link>
+          <Link
+            href="/register"
+            className="text-xs bg-[#EDEDED] text-[#0A0A0A] hover:bg-[#DCDCDC] px-3 py-1.5 rounded-sm transition-colors font-medium"
+            aria-label="Register on hostfa.st"
+          >
+            Get Started
+          </Link>
+        </div>
+      </nav>
+
+      {/* HERO SECTION */}
+      <header className="relative pt-28 pb-12 px-4 max-w-4xl mx-auto text-center flex flex-col items-center">
+        <ScrollReveal className="space-y-4 flex flex-col items-center">
+          <span className="inline-flex border border-[#222] rounded-full px-3 py-0.5 text-[10px] md:text-xs text-[#888] font-mono tracking-wider bg-[#111] select-none uppercase font-semibold">
+            Comparison
+          </span>
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-[#EDEDED] max-w-2xl">
+            hostfa.st vs Webflow Hosting
+          </h1>
+          <p className="text-sm md:text-base text-[#888] max-w-md mx-auto leading-relaxed">
+            {"Webflow is great for design. Their hosting is overpriced. hostfa.st hosts your Webflow-exported site for $3/month with auto-sync."}
+          </p>
+        </ScrollReveal>
+
+        {/* Side by side boxes */}
+        <ScrollReveal className="w-full max-w-xl mt-12 flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 select-none relative">
+          
+          {/* Webflow box */}
+          <div className="w-full bg-[#111] border border-[#222] rounded-xl p-6 flex flex-col items-center gap-2">
+            <span className="text-xs font-mono text-[#555] uppercase tracking-wider">Webflow Basic</span>
+            <span className="text-2xl font-bold text-[#EDEDED] font-mono">$15-25</span>
+            <span className="text-[10px] text-[#555]">/ site / month</span>
+          </div>
+
+          {/* VS Divider */}
+          <span className="w-8 h-8 rounded-full bg-[#0A0A0A] border border-[#222] flex items-center justify-center text-[10px] font-mono text-[#555] shrink-0">
+            VS
+          </span>
+
+          {/* hostfa.st box */}
+          <div className="w-full bg-[#111] border border-[#EDEDED] rounded-xl p-6 flex flex-col items-center gap-2">
+            <span className="text-xs font-mono text-[#888] uppercase tracking-wider">hostfa.st</span>
+            <span className="text-2xl font-bold text-[#EDEDED] font-mono">$3.00</span>
+            <span className="text-[10px] text-[#888]">/ site / month</span>
+          </div>
+
+        </ScrollReveal>
+
+        <span className="block text-xs text-[#555] font-mono mt-6 select-none">
+          Same result. Different price.
+        </span>
+      </header>
+
+      {/* DETAILED COMPARISON TABLE */}
+      <section className="py-20 px-4 max-w-3xl mx-auto border-t border-[#222]">
+        <ScrollReveal className="space-y-4 mb-10">
+          <span className="text-[10px] text-[#555] uppercase tracking-wider font-semibold font-mono">
+            Specs Matrix
+          </span>
+          <h2 className="text-xl md:text-2xl font-semibold text-[#EDEDED] tracking-tight">
+            Detailed Comparison Table
+          </h2>
+        </ScrollReveal>
+
+        <ScrollReveal>
+          <div className="border border-[#222] rounded-lg overflow-hidden bg-[#0A0A0A] text-xs md:text-sm select-none">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#111] border-b border-[#222] text-[10px] md:text-xs text-[#555] uppercase tracking-wider font-semibold">
+                  <th className="px-4 py-3.5">Feature</th>
+                  <th className="px-4 py-3.5">Webflow Hosting</th>
+                  <th className="px-4 py-3.5 text-[#22C55E]">hostfa.st</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* PRICING */}
+                <tr className="bg-[#0D0D0D] border-b border-[#222] font-semibold text-[#555]">
+                  <td colSpan={3} className="px-4 py-2.5 uppercase tracking-wide text-[9px] md:text-[10px]">Pricing & Savings</td>
+                </tr>
+                <tr className="border-b border-[#1A1A1A] h-10">
+                  <td className="px-4 py-2 text-[#888]">Monthly cost (1 site)</td>
+                  <td className="px-4 py-2 text-[#EDEDED]">$15–25/mo</td>
+                  <td className="px-4 py-2 text-[#22C55E] bg-[#0F1A0F]/70 font-bold">$3/mo</td>
+                </tr>
+                <tr className="border-b border-[#1A1A1A] h-10">
+                  <td className="px-4 py-2 text-[#888]">Monthly cost (Premium site)</td>
+                  <td className="px-4 py-2 text-[#EDEDED]">$25–39/mo</td>
+                  <td className="px-4 py-2 text-[#22C55E] bg-[#0F1A0F]/70 font-bold">$3/mo</td>
+                </tr>
+                <tr className="border-b border-[#1A1A1A] h-10">
+                  <td className="px-4 py-2 text-[#888]">Monthly cost (3 sites)</td>
+                  <td className="px-4 py-2 text-[#EDEDED]">$45–75/mo</td>
+                  <td className="px-4 py-2 text-[#22C55E] bg-[#0F1A0F]/70 font-bold">$7/mo</td>
+                </tr>
+                <tr className="border-b border-[#1A1A1A] h-10">
+                  <td className="px-4 py-2 text-[#888]">Annual savings (3 sites)</td>
+                  <td className="px-4 py-2 text-[#555]">$0</td>
+                  <td className="px-4 py-2 text-[#22C55E] bg-[#0F1A0F]/70 font-bold">Save $468-804/yr</td>
+                </tr>
+
+                {/* FEATURES */}
+                <tr className="bg-[#0D0D0D] border-b border-[#222] font-semibold text-[#555]">
+                  <td colSpan={3} className="px-4 py-2.5 uppercase tracking-wide text-[9px] md:text-[10px]">Features Comparison</td>
+                </tr>
+                <tr className="border-b border-[#1A1A1A] h-10">
+                  <td className="px-4 py-2 text-[#888]">Custom domain</td>
+                  <td className="px-4 py-2 text-[#EDEDED]">✓</td>
+                  <td className="px-4 py-2 text-[#22C55E] bg-[#0F1A0F]/70">✓</td>
+                </tr>
+                <tr className="border-b border-[#1A1A1A] h-10">
+                  <td className="px-4 py-2 text-[#888]">SSL certification</td>
+                  <td className="px-4 py-2 text-[#EDEDED]">✓</td>
+                  <td className="px-4 py-2 text-[#22C55E] bg-[#0F1A0F]/70">✓</td>
+                </tr>
+                <tr className="border-b border-[#1A1A1A] h-10">
+                  <td className="px-4 py-2 text-[#888]">Auto-sync on publish</td>
+                  <td className="px-4 py-2 text-[#EDEDED]">✓</td>
+                  <td className="px-4 py-2 text-[#22C55E] bg-[#0F1A0F]/70">{"✓ (via Export API)"}</td>
+                </tr>
+                <tr className="border-b border-[#1A1A1A] h-10">
+                  <td className="px-4 py-2 text-[#888]">Stability</td>
+                  <td className="px-4 py-2 text-[#EDEDED]">High</td>
+                  <td className="px-4 py-2 text-[#22C55E] bg-[#0F1A0F]/70 font-semibold">{"High (Uses official exports)"}</td>
+                </tr>
+                <tr className="border-b border-[#1A1A1A] h-10">
+                  <td className="px-4 py-2 text-[#888]">Design editor</td>
+                  <td className="px-4 py-2 text-[#EDEDED]">Webflow Workspace</td>
+                  <td className="px-4 py-2 text-[#22C55E] bg-[#0F1A0F]/70">Webflow Workspace</td>
+                </tr>
+
+                {/* INFRASTRUCTURE */}
+                <tr className="bg-[#0D0D0D] border-b border-[#222] font-semibold text-[#555]">
+                  <td colSpan={3} className="px-4 py-2.5 uppercase tracking-wide text-[9px] md:text-[10px]">Infrastructure & Lock-In</td>
+                </tr>
+                <tr className="border-b border-[#1A1A1A] h-10">
+                  <td className="px-4 py-2 text-[#888]">Infrastructure</td>
+                  <td className="px-4 py-2 text-[#888]">AWS / Fastly</td>
+                  <td className="px-4 py-2 text-[#22C55E] bg-[#0F1A0F]/70 font-semibold">Cloudflare Edge</td>
+                </tr>
+                <tr className="border-b border-[#1A1A1A] h-10">
+                  <td className="px-4 py-2 text-[#888]">Full code export</td>
+                  <td className="px-4 py-2 text-[#EDEDED]">Yes (HTML/CSS/JS)</td>
+                  <td className="px-4 py-2 text-[#22C55E] bg-[#0F1A0F]/70">Yes (Hosted independently)</td>
+                </tr>
+                <tr className="h-10">
+                  <td className="px-4 py-2 text-[#888]">Lock-in risk</td>
+                  <td className="px-4 py-2 text-[#EF4444]">High</td>
+                  <td className="px-4 py-2 text-[#22C55E] bg-[#0F1A0F]/70 font-semibold">None (you own code)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* REAL COST BREAKDOWN */}
+      <section className="py-20 px-4 max-w-3xl mx-auto border-t border-[#222]">
+        <ScrollReveal className="space-y-4 text-center mb-10">
+          <span className="text-[10px] text-[#555] uppercase tracking-wider font-semibold font-mono">
+            Accumulated Expense
+          </span>
+          <h2 className="text-xl md:text-2xl font-semibold text-[#EDEDED] tracking-tight">
+            The real cost of Webflow hosting
+          </h2>
+          <p className="text-xs md:text-sm text-[#888] max-w-md mx-auto">
+            Compare cumulative cost projections over time. See how Webflow plan scales for multiple sites.
+          </p>
+
+          {/* Calculator Tab selector */}
+          <div className="flex justify-center pt-2 select-none">
+            <div className="inline-flex bg-[#111] border border-[#222] rounded p-1">
+              <button
+                onClick={() => setActiveSiteTab(1)}
+                className={`text-[10px] md:text-xs font-semibold px-4 py-1.5 rounded transition-all duration-200 ${
+                  activeSiteTab === 1 ? "bg-[#EDEDED] text-[#0A0A0A]" : "text-[#888] hover:text-[#EDEDED]"
+                }`}
+              >
+                1 Site
+              </button>
+              <button
+                onClick={() => setActiveSiteTab(3)}
+                className={`text-[10px] md:text-xs font-semibold px-4 py-1.5 rounded transition-all duration-200 ${
+                  activeSiteTab === 3 ? "bg-[#EDEDED] text-[#0A0A0A]" : "text-[#888] hover:text-[#EDEDED]"
+                }`}
+              >
+                3 Sites
+              </button>
+            </div>
+          </div>
+        </ScrollReveal>
+
+        {/* Visual Bar Comparison charts */}
+        <ScrollReveal className="bg-[#111] border border-[#222] rounded-xl p-6 md:p-8 space-y-6">
+          <div className="space-y-5">
+            {timelineData.map((item) => {
+              const webflowPct = (item.webflow / maxCost) * 100;
+              const hostfastPct = (item.hostfast / maxCost) * 100;
+
+              return (
+                <div key={item.label} className="space-y-2 select-none">
+                  <div className="flex justify-between items-center text-xs font-semibold text-[#888]">
+                    <span>{item.label}</span>
+                    <span className="font-mono text-[#555]">
+                      (Save ${item.webflow - item.hostfast})
+                    </span>
+                  </div>
+                  {/* Bars Row */}
+                  <div className="space-y-1.5">
+                    {/* Webflow Bar */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-14 text-[10px] text-[#888] shrink-0 font-medium">Webflow:</div>
+                      <div className="flex-1 h-3 bg-[#0A0A0A] rounded overflow-hidden border border-[#222]">
+                        <div
+                          style={{ width: `${webflowPct}%` }}
+                          className="h-full bg-[#333] transition-all duration-500 ease-out"
+                        />
+                      </div>
+                      <div className="w-12 text-right text-xs font-bold text-[#888] font-mono">${item.webflow}</div>
+                    </div>
+                    {/* hostfa.st Bar */}
+                    <div className="flex items-center gap-3">
+                      <div className="w-14 text-[10px] text-[#22C55E] shrink-0 font-bold">hostfa.st:</div>
+                      <div className="flex-1 h-3 bg-[#0A0A0A] rounded overflow-hidden border border-[#222]">
+                        <div
+                          style={{ width: `${hostfastPct}%` }}
+                          className="h-full bg-[#22C55E] transition-all duration-500 ease-out"
+                        />
+                      </div>
+                      <div className="w-12 text-right text-xs font-bold text-[#22C55E] font-mono">${item.hostfast}</div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="border-t border-[#222] pt-5 text-center text-xs md:text-sm text-[#888] select-none leading-relaxed">
+            {activeSiteTab === 3 ? (
+              <span className="font-mono">
+                {"Over 2 years with 3 Webflow sites: "}
+                <span className="text-[#EF4444] font-bold">{"Webflow: $1,080–1,800"}</span>
+                {" | "}
+                <span className="text-[#EDEDED] font-bold">{"hostfa.st: $144–192"}</span>
+                {" | "}
+                <span className="text-[#22C55E] font-bold">{"You save: $936–1,608"}</span>
+              </span>
+            ) : (
+              <span className="font-mono">
+                {"Over 2 years with 1 Webflow site: "}
+                <span className="text-[#EF4444] font-bold">{"Webflow: $360–600"}</span>
+                {" | "}
+                <span className="text-[#EDEDED] font-bold">{"hostfa.st: $60–72"}</span>
+                {" | "}
+                <span className="text-[#22C55E] font-bold">{"You save: $300–528"}</span>
+              </span>
+            )}
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* WHEN TO CHOOSE WEBFLOW HOSTING */}
+      <section className="py-20 px-4 max-w-3xl mx-auto border-t border-[#222]">
+        <ScrollReveal className="space-y-4 mb-10">
+          <span className="text-[10px] text-[#555] uppercase tracking-wider font-semibold font-mono">
+            Unbiased Opinion
+          </span>
+          <h2 className="text-xl md:text-2xl font-semibold text-[#EDEDED] tracking-tight">
+            When Webflow hosting makes sense
+          </h2>
+          <p className="text-xs md:text-sm text-[#888] leading-relaxed">
+            {"We advocate transparent comparisons. You should stick with Webflow's native hosting infrastructure if:"}
+          </p>
+        </ScrollReveal>
+
+        <ScrollReveal className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-[#111] border border-[#222] rounded-lg p-5 space-y-2 hover:border-[#333] transition-colors select-none">
+            <span className="text-[10px] font-mono text-[#555] uppercase tracking-wider">Scenario A</span>
+            <h3 className="text-xs md:text-sm font-semibold text-[#EDEDED]">Dynamic Webflow CMS</h3>
+            <p className="text-[11px] md:text-xs text-[#888] leading-relaxed">
+              {"You depend on Webflow's native editor-based dynamic database updates, custom filter fields, or native search items."}
+            </p>
+          </div>
+          <div className="bg-[#111] border border-[#222] rounded-lg p-5 space-y-2 hover:border-[#333] transition-colors select-none">
+            <span className="text-[10px] font-mono text-[#555] uppercase tracking-wider">Scenario B</span>
+            <h3 className="text-xs md:text-sm font-semibold text-[#EDEDED]">Native Forms</h3>
+            <p className="text-[11px] md:text-xs text-[#888] leading-relaxed">
+              {"You utilize Webflow's built-in forms integrations, validation, or native e-commerce logic out of the box."}
+            </p>
+          </div>
+          <div className="bg-[#111] border border-[#222] rounded-lg p-5 space-y-2 hover:border-[#333] transition-colors select-none">
+            <span className="text-[10px] font-mono text-[#555] uppercase tracking-wider">Scenario C</span>
+            <h3 className="text-xs md:text-sm font-semibold text-[#EDEDED]">Workspace Billing</h3>
+            <p className="text-[11px] md:text-xs text-[#888] leading-relaxed">
+              {"Your organization has extensive team accounts where separate monthly invoices are not allowed or billing consolidation is mandatory."}
+            </p>
+          </div>
+        </ScrollReveal>
+
+        <ScrollReveal className="text-center text-xs md:text-sm text-[#888] mt-8 select-none font-mono">
+          For everyone else — hostfa.st saves you money.
+        </ScrollReveal>
+      </section>
+
+      {/* MIGRATION GUIDE */}
+      <section className="py-20 px-4 max-w-3xl mx-auto border-t border-[#222]">
+        <ScrollReveal className="space-y-4 mb-10">
+          <span className="text-[10px] text-[#555] uppercase tracking-wider font-semibold font-mono">
+            Migration Guide
+          </span>
+          <h2 className="text-xl md:text-2xl font-semibold text-[#EDEDED] tracking-tight">
+            Switch in 5 minutes
+          </h2>
+        </ScrollReveal>
+
+        <ScrollReveal className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-[#111] border border-[#222] rounded-lg p-5 space-y-2 hover:border-[#333] transition-colors select-none">
+            <span className="text-lg font-mono font-bold text-[#555]">01</span>
+            <h3 className="text-xs md:text-sm font-semibold text-[#EDEDED]">Export Code</h3>
+            <p className="text-[11px] text-[#888] leading-relaxed">
+              {"Export your Webflow site HTML/CSS/JS (Settings -> Export)."}
+            </p>
+          </div>
+          <div className="bg-[#111] border border-[#222] rounded-lg p-5 space-y-2 hover:border-[#333] transition-colors select-none">
+            <span className="text-lg font-mono font-bold text-[#555]">02</span>
+            <h3 className="text-xs md:text-sm font-semibold text-[#EDEDED]">Connect</h3>
+            <p className="text-[11px] text-[#888] leading-relaxed">
+              {"Connect the exported zip or directory structure to hostfa.st."}
+            </p>
+          </div>
+          <div className="bg-[#111] border border-[#222] rounded-lg p-5 space-y-2 hover:border-[#333] transition-colors select-none">
+            <span className="text-lg font-mono font-bold text-[#555]">03</span>
+            <h3 className="text-xs md:text-sm font-semibold text-[#EDEDED]">Configure DNS</h3>
+            <p className="text-[11px] text-[#888] leading-relaxed">
+              Point your domain to hostfa.st with one simple CNAME record details.
+            </p>
+          </div>
+          <div className="bg-[#111] border border-[#222] rounded-lg p-5 space-y-2 hover:border-[#333] transition-colors select-none">
+            <span className="text-lg font-mono font-bold text-[#555]">04</span>
+            <h3 className="text-xs md:text-sm font-semibold text-[#EDEDED]">Cancel Plan</h3>
+            <p className="text-[11px] text-[#888] leading-relaxed">
+              Cancel Webflow paid hosting. Keep designer workspace if needed.
+            </p>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* FINAL CTA WITH COMING SOON BADGE */}
+      <section className="py-24 text-center border-t border-[#222] bg-[#090909] px-4">
+        <ScrollReveal className="max-w-xl mx-auto space-y-6 flex flex-col items-center">
+          
+          {/* Coming soon badge */}
+          <div className="mb-2">
+            <span className="inline-flex bg-[#EAB308]/10 border border-[#EAB308]/30 text-[#EAB308] rounded-full px-3 py-1 text-[10px] font-mono select-none tracking-tight">
+              ⏳ Coming soon — Webflow support launching in Phase 2
+            </span>
+          </div>
+
+          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-[#EDEDED] leading-tight">
+            Switch to hostfa.st — Save $100+/year
+          </h2>
+          <p className="text-xs md:text-sm text-[#888] max-w-sm mx-auto leading-relaxed">
+            Stop paying expensive Webflow Basic and CMS rates. Host your static assets on the global edge CDN instead.
+          </p>
+
+          <div className="pt-2 w-full flex flex-col items-center gap-3">
+            <Link
+              href="/register?waitlist=webflow"
+              className="w-full max-w-xs text-center text-sm font-semibold bg-[#111] hover:bg-[#1A1A1A] border border-[#333] hover:border-[#444] text-[#888] hover:text-[#EDEDED] px-8 py-3 rounded-sm transition-colors"
+              aria-label="Join Webflow Waitlist"
+            >
+              Join Webflow Beta Waitlist
+            </Link>
+            <span className="block text-[10px] text-[#555] font-mono select-none">
+              Get notified when Webflow auto-sync goes live.
+            </span>
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* UNIFIED FOOTER */}
+      <Footer />
+    </div>
+  );
+}

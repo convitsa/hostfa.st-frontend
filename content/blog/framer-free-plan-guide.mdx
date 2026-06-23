@@ -1,0 +1,75 @@
+---
+slug: framer-free-plan-guide
+title: "How to Use Framer's Free Plan in 2026 (And Still Get a Custom Domain)"
+description: "Everything you can do on Framer's free plan and how to get a custom domain without upgrading to a paid plan."
+date: "2026-06-15"
+readingTime: "4 min"
+---
+
+Framer has established itself as one of the most powerful design-to-web tools in the industry. It gives designers print-like layout control, combined with native production-ready animations. The best part? You can use nearly all of these features completely for free. 
+
+Framer's **Free Plan** is surprisingly generous. It allows you to build full, complex, multi-page websites without inputting a credit card. However, the moment you want to point your site to a custom domain (like `mybusiness.com`), Framer prompts you to upgrade to a paid hosting subscription.
+
+In this guide, we will look at what you can do with Framer's free plan, what you lose, and how you can work around the custom domain limit for just $3/month.
+
+---
+
+## What Framer's free plan includes
+
+Framer's free tier is not a simple limited trial; it is a fully functional design platform. Here is what is included:
+
+- **Full Editor Access:** Use all canvas, design, styling, positioning, and animation tools.
+- **Components & Interactions:** Build reusable design components, add hover states, trigger scroll-based animations, and create complex navigation menus.
+- **Publish to a Subdomain:** Publish your site instantly to a free `.framer.website` (or `.framer.app`, `.framer.media`) subdomain.
+- **Unlimited Projects:** Create as many test sites or visual drafts as you want.
+- **AI Design Tools:** Generate design layouts and text copies directly inside the editor using AI assistants.
+
+For most designers and builders, this package provides everything needed to construct a professional, high-performance website.
+
+---
+
+## What you miss on the free plan
+
+If the free plan is so robust, why does anyone upgrade? There are only two major limitations on the free tier:
+
+1. **No Custom Domain:** You cannot point your site to `yourdomain.com`. You are forced to use their standard `.framer.website` subdomain.
+2. **The Framer Badge:** All free sites feature a small "Made in Framer" badge floating in the bottom-right corner of the page.
+
+To remove this badge and connect a custom domain natively, Framer requires you to upgrade to the **Basic** plan, which costs **$10 to $15 per site, every month**. For simple landing pages or side projects, this is a steep price.
+
+---
+
+## The workaround — hostfa.st
+
+With [hostfa.st](http://localhost:3000/register), you can connect your custom domain and remove the Framer badge while keeping your Framer account on the **Free** tier.
+
+By using hostfa.st to proxy your public `.framer.website` url, we serve your site directly on your custom domain, optimize its performance, and clean the html code—including removing the Framer badge—for just **$3/month**.
+
+### Step-by-step setup:
+1. **Keep your Framer project on the Free plan:** Do not upgrade your project in the Framer dashboard.
+2. **Publish your site:** Press the blue "Publish" button in Framer and copy your `.framer.website` address.
+3. **Sign up at hostfa.st:** Create your account at [hostfa.st Register](http://localhost:3000/register).
+4. **Enter your URL:** Paste your `.framer.website` URL into the hostfa.st dashboard.
+5. **Configure CNAME:** Update your domain registrar's DNS settings (like GoDaddy, Namecheap, or Cloudflare) with a single CNAME record pointing to hostfa.st.
+6. **Live:** Your site is now live on your custom domain with the badge removed, saving you $7–$12 per month!
+
+---
+
+## Is this allowed by Framer?
+
+Yes. When you publish a site to a `.framer.website` subdomain on the free plan, that site is fully public on the internet. Anyone can open it, view the HTML code, and download the assets.
+
+hostfa.st acts as a standard visitor. We read the public HTML content, translate links to work with your custom domain, remove the badge container element, and cache the static output across our CDN edge servers. You are simply serving your own design assets on your own domain. No Framer terms of service are violated.
+
+---
+
+## Who is this for?
+
+This workaround is the perfect setup for:
+- **Personal Portfolios:** Designers who want a clean website on a custom domain without monthly hosting fees.
+- **Side Project Landing Pages:** Indie hackers launching experiments who need to test multiple ideas cheaply.
+- **Pre-launch Startups:** Collecting email sign-ups before committing to full platform plans.
+
+If your site gets under 100,000 visitors a month and does not require complex built-in editor permissions, there is no reason to pay Framer $15/month.
+
+Ready to save? Get a custom domain for your Framer site for just $3/month at [hostfa.st](http://localhost:3000/register). Learn more on our [Pricing page](http://localhost:3000/pricing), estimate your potential savings with our [Framer Hosting Cost Calculator](http://localhost:3000/tools/cost-calculator), or use our manual [Framer Exporter](http://localhost:3000/tools/framer-export) tool.

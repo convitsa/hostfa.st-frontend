@@ -1,26 +1,240 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-background: #0A0A0A;
+  --color-surface: #111111;
+  --color-surface-raised: #1A1A1A;
+  --color-border-default: #222222;
+  --color-border-strong: #333333;
+  --color-text-primary: #EDEDED;
+  --color-text-secondary: #888888;
+  --color-text-tertiary: #555555;
+  --color-accent: #EDEDED;
+  --color-accent-fg: #0A0A0A;
+  --color-success: #22C55E;
+  --color-success-subtle: #0F2318;
+  --color-warning: #EAB308;
+  --color-warning-subtle: #1C1A08;
+  --color-error: #EF4444;
+  --color-error-subtle: #1F0D0D;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  --font-sans: var(--font-geist-sans), Inter, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
+
+  /* Spacing base unit is 4px. We can map custom utilities or rely on Tailwind's default spacing. */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Custom Typography Utility Classes matching design system specifications */
+@utility text-xs {
+  font-size: 11px;
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+}
+@utility text-sm {
+  font-size: 13px;
+  line-height: 1.6;
+}
+@utility text-base {
+  font-size: 14px;
+  line-height: 1.6;
+}
+@utility text-lg {
+  font-size: 16px;
+  line-height: 1.5;
+}
+@utility text-xl {
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 500;
+}
+@utility text-2xl {
+  font-size: 24px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+@utility text-3xl {
+  font-size: 30px;
+  line-height: 1.1;
+  font-weight: 600;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Base style resets */
+@layer base {
+  body {
+    background-color: #0A0A0A;
+    color: #EDEDED;
+    font-family: var(--font-geist-sans), Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom subtle scrollbar style */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
+::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+::-webkit-scrollbar-thumb {
+  background: #222222;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #333333;
+}
+
+/* Micro-interaction for active buttons */
+.btn-active-scale:active {
+  transform: scale(0.98);
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.2s ease-out forwards;
+}
+
+@keyframes fade-mount {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-mount {
+  animation: fade-mount 200ms ease-out forwards;
+}
+
+/* Global focus-visible outlines */
+*:focus-visible {
+  outline: 2px solid rgba(237, 237, 237, 0.5) !important;
+  outline-offset: 2px !important;
+}
+
+/* Inputs inside custom-bordered wrappers — focus feedback comes from parent's
+   focus-within border change, so suppress the default focus-visible ring */
+input:focus-visible,
+input[class*="outline-none"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Custom CSS Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #333333;
+  transition: 0.2s;
+  border-radius: 20px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #EDEDED;
+  transition: 0.2s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #22C55E;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(16px);
+}
+
+@keyframes border-pulse {
+  0%, 100% { border-color: #222222; }
+  50% { border-color: #444444; }
+}
+
+.animate-border-pulse {
+  animation: border-pulse 2s infinite ease-in-out;
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-10px) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.confetti-piece {
+  position: fixed;
+  top: -10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: confetti-fall 3s linear forwards;
+  z-index: 100;
+}
+
+@keyframes confetti-burst {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--tx), var(--ty)) scale(0.3);
+    opacity: 0;
+  }
+}
+
+.confetti-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: confetti-burst 0.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+
+
+
+
+
