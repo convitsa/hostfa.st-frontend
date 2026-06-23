@@ -261,7 +261,7 @@ function OnboardingForm() {
 
   const handleCopyAll = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const text = "Type: CNAME\nName: @\nValue: hostfa.st\nTTL: Auto";
+    const text = "Type: CNAME\nName: @\nValue: cname.hostfa.st\nTTL: Auto";
     navigator.clipboard.writeText(text);
     setCopiedAll(true);
     showToast("All DNS details copied to clipboard");
@@ -564,7 +564,7 @@ function OnboardingForm() {
                           <tr className="h-8">
                             <CopyableCell value="CNAME" label="Type" showToast={showToast} />
                             <CopyableCell value="@" label="Name" showToast={showToast} />
-                            <CopyableCell value="hostfa.st" label="Value" showToast={showToast} />
+                            <CopyableCell value="cname.hostfa.st" label="Value" showToast={showToast} />
                             <CopyableCell value="Auto" label="TTL" showToast={showToast} />
                           </tr>
                         </tbody>
@@ -613,7 +613,7 @@ function OnboardingForm() {
                           <ul className="text-xs text-[#555] space-y-1">
                             <li>• Make sure you added a CNAME record, not an A record</li>
                             <li>• The Name field should be @ or your root domain</li>
-                            <li>• The Value field should be exactly: hostfa.st</li>
+                            <li>• The Value field should be exactly: cname.hostfa.st</li>
                             <li>• DNS changes can take up to 10 minutes to propagate</li>
                           </ul>
                         </div>

@@ -1,13 +1,9 @@
 import axios from "axios";
 
-const isServer = typeof window === "undefined";
-
-export const API_BASE_URL = isServer
-  ? (process.env.NEXT_PUBLIC_API_URL || "https://api.hostfa.st")
-  : "/api";
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",

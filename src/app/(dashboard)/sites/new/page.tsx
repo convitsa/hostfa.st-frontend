@@ -404,7 +404,7 @@ function NewSiteForm() {
                       <td className="px-3 py-1 text-[#EDEDED]">CNAME</td>
                       <td className="px-3 py-1 text-[#EDEDED]">@</td>
                       <td className="px-3 py-1 text-[#22C55E] flex items-center justify-between gap-1 select-all">
-                        <span>hostfa.st</span>
+                        <span>cname.hostfa.st</span>
                         <button
                           type="button"
                           onClick={handleCopyCNAME}
