@@ -4,4 +4,4 @@
 nginx &
 
 # Start Bun application
-exec bun run start
+PORT=3000 exec bun run start
