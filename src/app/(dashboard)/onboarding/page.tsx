@@ -136,26 +136,6 @@ function OnboardingForm() {
     }
   }, [user, sites, checkoutParam, router]);
 
-  // Check for checkout parameter
-  useEffect(() => {
-    if (checkoutParam === "success") {
-      setStep(4);
-      // Retrieve stored url & domain to trigger site creation
-      const pendingUrl = sessionStorage.getItem("pending_framer_url");
-      const pendingDomain = sessionStorage.getItem("pending_custom_domain");
-      if (pendingUrl && pendingDomain) {
-        createSiteMutation.mutate({
-          framer_url: pendingUrl,
-          custom_domain: pendingDomain,
-        });
-      }
-    } else if (checkoutParam === "cancelled") {
-      showToast("Checkout cancelled. Please pick a plan.", "error");
-      setStep(3);
-      router.replace("/onboarding");
-    }
-  }, [checkoutParam]);
-
   // Mutation to create site after returning from checkout
   const createSiteMutation = useMutation({
     mutationFn: async (data: { framer_url: string; custom_domain: string }) => {
@@ -165,8 +145,6 @@ function OnboardingForm() {
     onSuccess: (data) => {
       setCreatedSiteId(data.id);
       showToast("Payment confirmed! Creating your site...");
-      sessionStorage.removeItem("pending_framer_url");
-      sessionStorage.removeItem("pending_custom_domain");
       queryClient.invalidateQueries({ queryKey: ["sites"] });
     },
     onError: (err: Error) => {
@@ -185,13 +163,37 @@ function OnboardingForm() {
     },
   });
 
+  // Mutation to trigger redeployment
+  const redeployMutation = useMutation({
+    mutationFn: async (siteId: string) => {
+      const res = await api.post(`/sites/${siteId}/deploy`);
+      return res.data;
+    },
+    onSuccess: () => {
+      showToast("Redeployment triggered!");
+      queryClient.invalidateQueries({ queryKey: ["polledSites"] });
+      if (siteId) {
+        queryClient.invalidateQueries({ queryKey: ["siteDetail", siteId] });
+      }
+    },
+    onError: (err: Error) => {
+      showToast(err.message || "Failed to trigger redeployment.", "error");
+    },
+  });
+
   // Stripe Checkout redirection
   const checkoutMutation = useMutation({
     mutationFn: async () => {
       setIsCheckoutRedirecting(true);
-      // Save details to sessionStorage
-      sessionStorage.setItem("pending_framer_url", framerUrl.startsWith("http") ? framerUrl : `https://${framerUrl}`);
-      sessionStorage.setItem("pending_custom_domain", customDomain);
+      const formattedFramerUrl = framerUrl.startsWith("http") ? framerUrl : `https://${framerUrl}`;
+
+      // Save onboarding wizard state
+      sessionStorage.setItem("onboarding_state", JSON.stringify({
+        framer_url: formattedFramerUrl,
+        custom_domain: customDomain,
+        plan: selectedPlan,
+        step: 3
+      }));
 
       const res = await api.post("/billing/checkout", {
         plan: selectedPlan,
@@ -207,17 +209,67 @@ function OnboardingForm() {
         showToast("Mock Stripe Checkout successfully completed!");
         setIsCheckoutRedirecting(false);
         setStep(4);
+        const formattedFramerUrl = framerUrl.startsWith("http") ? framerUrl : `https://${framerUrl}`;
         createSiteMutation.mutate({
-          framer_url: framerUrl.startsWith("http") ? framerUrl : `https://${framerUrl}`,
+          framer_url: formattedFramerUrl,
           custom_domain: customDomain,
         });
+        sessionStorage.removeItem("onboarding_state");
       }
     },
     onError: (err: Error) => {
       showToast(err.message || "Failed to initialize checkout session", "error");
       setIsCheckoutRedirecting(false);
+      sessionStorage.removeItem("onboarding_state");
     },
   });
+
+  // Check for checkout parameter and restore state
+  useEffect(() => {
+    if (checkoutParam === "success") {
+      // 1. Invalidate currentUser to get updated plan
+      queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+
+      // 2. Read saved state from sessionStorage
+      const savedStateStr = sessionStorage.getItem("onboarding_state");
+      let restoredFramerUrl = framerUrl;
+      let restoredCustomDomain = customDomain;
+
+      if (savedStateStr) {
+        try {
+          const savedState = JSON.parse(savedStateStr);
+          if (savedState.framer_url) {
+            setFramerUrl(savedState.framer_url);
+            restoredFramerUrl = savedState.framer_url;
+          }
+          if (savedState.custom_domain) {
+            setCustomDomain(savedState.custom_domain);
+            restoredCustomDomain = savedState.custom_domain;
+          }
+          if (savedState.plan) {
+            setSelectedPlan(savedState.plan);
+          }
+        } catch (e) {
+          console.error("Error parsing onboarding_state:", e);
+        }
+        // 4. Clear sessionStorage after reading
+        sessionStorage.removeItem("onboarding_state");
+      }
+
+      setStep(4);
+
+      if (restoredFramerUrl && restoredCustomDomain) {
+        createSiteMutation.mutate({
+          framer_url: restoredFramerUrl,
+          custom_domain: restoredCustomDomain,
+        });
+      }
+    } else if (checkoutParam === "cancelled") {
+      showToast("Checkout cancelled. Please pick a plan.", "error");
+      setStep(3);
+      router.replace("/onboarding");
+    }
+  }, [checkoutParam, router, queryClient]);
 
   // Query to poll site deployment status in step 4
   const { data: polledSites } = useQuery<any[]>({
@@ -229,7 +281,7 @@ function OnboardingForm() {
     refetchInterval: (query) => {
       const siteList = query.state.data as any[] | undefined;
       const targetSite = siteList?.find((s) => s.id === createdSiteId || s.custom_domain === customDomain);
-      if (targetSite && targetSite.status === "live") {
+      if (targetSite && (targetSite.status === "live" || targetSite.status === "active" || targetSite.status === "error")) {
         return false;
       }
       return step === 4 ? 5000 : false;
@@ -238,15 +290,35 @@ function OnboardingForm() {
   });
 
   const activeSite = polledSites?.find((s) => s.id === createdSiteId || s.custom_domain === customDomain);
-  const deploymentStatus = activeSite?.status || "pending"; // pending, deploying, live, error
+  const siteId = activeSite?.id;
+  const currentStatus = activeSite?.status || "pending"; // pending, deploying, live, active, error
 
-  // Complete onboarding once site is live
+  // Detailed query to poll deployments for distinguishing crawling vs deploying
+  const { data: siteDetail } = useQuery<any>({
+    queryKey: ["siteDetail", siteId],
+    queryFn: async () => {
+      const res = await api.get(`/sites/${siteId}`);
+      return res.data;
+    },
+    enabled: !!siteId && currentStatus === "deploying" && step === 4,
+    refetchInterval: () => {
+      if (activeSite && (activeSite.status === "live" || activeSite.status === "active" || activeSite.status === "error")) {
+        return false;
+      }
+      return 5000;
+    },
+  });
+
+  const latestDeployment = siteDetail?.deployments?.[0];
+  const deploymentStatusValue = latestDeployment?.status; // crawling, uploading, live, failed
+
+  // Complete onboarding once site is live or active
   useEffect(() => {
-    if (deploymentStatus === "live" && user && !user.onboarding_complete) {
+    if ((currentStatus === "live" || currentStatus === "active") && user && !user.onboarding_complete) {
       completeOnboardingMutation.mutate();
       generateConfetti();
     }
-  }, [deploymentStatus, user]);
+  }, [currentStatus, user]);
 
   const generateConfetti = () => {
     const colors = ["#22C55E", "#3B82F6", "#EAB308", "#A855F7", "#EC4899"];
@@ -346,7 +418,7 @@ function OnboardingForm() {
   return (
     <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto w-full py-8 md:py-12 select-none">
       {/* Confetti Overlay */}
-      {deploymentStatus === "live" && (
+      {(currentStatus === "live" || currentStatus === "active") && (
         <>
           {confettiPieces.map((p) => (
             <div
@@ -765,72 +837,117 @@ function OnboardingForm() {
           </div>
         )}
 
-        {step === 4 && (
-          <div className="space-y-6 text-center py-4 select-none">
-            <div className="space-y-1.5">
-              <h2 className="text-lg font-medium text-[#EDEDED]">Welcome to hostfa.st 🎉</h2>
-              <p className="text-xs text-[#888]">Your site is being deployed now.</p>
-            </div>
+        {step === 4 && (() => {
+          const renderStatusIndicator = () => {
+            let dotColor = "bg-[#EAB308]";
+            let pulseClass = "";
+            let text = "Queued for deployment...";
 
-            {/* Live-updating status card */}
-            <Card hoverable={false} className="max-w-sm mx-auto p-4 bg-[#0A0A0A] border-[#222]">
-              <div className="flex flex-col items-center gap-3">
-                {deploymentStatus === "live" ? (
-                  <CheckCircle2 size={36} className="text-[#22C55E]" />
-                ) : deploymentStatus === "error" ? (
-                  <div className="w-9 h-9 rounded-full bg-[#1F0D0D] border border-[#EF4444]/20 flex items-center justify-center text-[#EF4444] text-xs font-semibold">✗</div>
-                ) : (
-                  <Loader2 className="animate-spin text-[#EAB308]" size={32} />
+            if (currentStatus === "pending") {
+              dotColor = "bg-[#EAB308]";
+              text = "Queued for deployment...";
+            } else if (currentStatus === "deploying") {
+              pulseClass = "animate-pulse";
+              dotColor = "bg-[#EAB308]";
+              if (deploymentStatusValue === "crawling") {
+                text = "Crawling your Framer site...";
+              } else {
+                text = "Deploying to your domain...";
+              }
+            } else if (currentStatus === "live" || currentStatus === "active") {
+              dotColor = "bg-[#22C55E]";
+              text = "Your site is live!";
+            } else if (currentStatus === "error") {
+              dotColor = "bg-[#EF4444]";
+              text = "Deployment failed. Please try again.";
+            }
+
+            return (
+              <div className="flex items-center gap-2 justify-center py-2 select-none">
+                <span className={`w-2.5 h-2.5 rounded-full ${dotColor} ${pulseClass}`} />
+                <span className="text-sm font-medium text-[#EDEDED]">{text}</span>
+              </div>
+            );
+          };
+
+          return (
+            <div className="space-y-6 text-center py-4 select-none animate-fade-mount w-full">
+              <div className="space-y-1.5">
+                <h2 className="text-lg font-medium text-[#EDEDED]">Welcome to hostfa.st 🎉</h2>
+                <p className="text-xs text-[#888]">Your site is being deployed now.</p>
+              </div>
+
+              {/* Status Display Card */}
+              <div className="bg-[#111] border border-[#222] rounded-lg p-6 max-w-sm mx-auto space-y-4">
+                {renderStatusIndicator()}
+
+                {/* Successful state display */}
+                {(currentStatus === "live" || currentStatus === "active") && (
+                  <div className="flex flex-col items-center gap-4 pt-2">
+                    <CheckCircle2 size={48} className="text-[#22C55E]" />
+                    <span className="text-xs text-[#22C55E] block font-medium">
+                      Your site is live at <strong className="font-mono text-[#EDEDED]">{customDomain}</strong>
+                    </span>
+                    <div className="flex gap-3 w-full">
+                      <a
+                        href={`https://${customDomain}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex-1"
+                      >
+                        <Button variant="secondary" className="w-full flex items-center justify-center gap-1 text-xs h-9.5 cursor-pointer">
+                          <span>Visit site</span>
+                          <ExternalLink size={13} />
+                        </Button>
+                      </a>
+                      <Button
+                        variant="primary"
+                        className="flex-1 text-xs h-9.5 cursor-pointer bg-[#EDEDED] text-[#0A0A0A] hover:bg-white"
+                        onClick={() => router.push("/dashboard")}
+                      >
+                        Go to dashboard
+                      </Button>
+                    </div>
+                  </div>
                 )}
 
-                <div className="space-y-1">
-                  <span className="text-xs text-[#888] font-medium uppercase tracking-wider block">
-                    Deployment Status
-                  </span>
-                  <span className={`text-sm font-semibold capitalize ${deploymentStatus === "live" ? "text-[#22C55E]" : deploymentStatus === "error" ? "text-[#EF4444]" : "text-[#EAB308]"
-                    }`}>
-                    {deploymentStatus === "pending" ? "Queued" : deploymentStatus === "deploying" ? "Crawling & Deploying" : deploymentStatus}
-                  </span>
-                </div>
+                {/* Failed state display */}
+                {currentStatus === "error" && (
+                  <div className="flex flex-col items-center gap-4 pt-2">
+                    <div className="w-12 h-12 rounded-full bg-[#1F0D0D] border border-[#EF4444]/20 flex items-center justify-center text-[#EF4444] text-lg font-semibold">✗</div>
+                    <span className="text-xs text-[#EF4444] block font-medium">
+                      Something went wrong during deployment.
+                    </span>
+                    <div className="flex gap-3 w-full">
+                      <Button
+                        variant="secondary"
+                        className="flex-1 text-xs h-9.5 cursor-pointer"
+                        onClick={() => siteId && redeployMutation.mutate(siteId)}
+                        disabled={redeployMutation.isPending}
+                      >
+                        {redeployMutation.isPending ? "Starting..." : "Try again"}
+                      </Button>
+                      <Button
+                        variant="primary"
+                        className="flex-1 text-xs h-9.5 cursor-pointer bg-[#EDEDED] text-[#0A0A0A] hover:bg-white"
+                        onClick={() => router.push("/dashboard")}
+                      >
+                        Go to dashboard
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
-                {/* Progress bar animating */}
-                {deploymentStatus !== "live" && deploymentStatus !== "error" && (
+                {/* Loading state bar */}
+                {currentStatus !== "live" && currentStatus !== "active" && currentStatus !== "error" && (
                   <div className="w-full bg-[#222] h-1.5 rounded-full overflow-hidden mt-1">
-                    <div className="bg-[#EAB308] h-full rounded-full animate-pulse w-2/3 transition-all duration-1000" />
+                    <div className="bg-[#EAB308] h-full rounded-full animate-pulse w-2/3" />
                   </div>
                 )}
               </div>
-            </Card>
-
-            {deploymentStatus === "live" && (
-              <div className="space-y-4 pt-2 animate-fade-mount">
-                <span className="text-xs text-[#22C55E] block font-medium">
-                  Your site is live at <strong className="font-mono text-[#EDEDED]">{customDomain}</strong>
-                </span>
-                <div className="flex gap-3 max-w-sm mx-auto">
-                  <a
-                    href={`https://${customDomain}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1"
-                  >
-                    <Button variant="secondary" className="w-full flex items-center justify-center gap-1 text-xs h-9.5 cursor-pointer">
-                      <span>Visit site</span>
-                      <ExternalLink size={13} />
-                    </Button>
-                  </a>
-                  <Button
-                    variant="primary"
-                    className="flex-1 text-xs h-9.5 cursor-pointer"
-                    onClick={() => router.push("/dashboard")}
-                  >
-                    Go to dashboard
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+            </div>
+          );
+        })()}
       </Card>
     </div>
   );
