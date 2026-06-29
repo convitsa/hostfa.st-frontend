@@ -29,25 +29,11 @@ RUN bun install
 # Copy the rest of the application (including .env)
 COPY . .
 
-# Build arguments for environment variables
-ARG NEXT_PUBLIC_API_URL
-
-ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-
-
 # Build the Next.js application
 RUN bun run build
 
-# Copy NGINX configuration (remove default sites so only our app is served)
-RUN mkdir -p /etc/nginx/sites-available /etc/nginx/sites-enabled \
-    && rm -f /etc/nginx/sites-enabled/default \
-    && rm -f /etc/nginx/conf.d/default.conf 2>/dev/null || true
-
-COPY nginx.conf /etc/nginx/sites-available/app.conf
-RUN ln -sf /etc/nginx/sites-available/app.conf /etc/nginx/sites-enabled/app.conf
-
 # Expose required ports
-EXPOSE 3000 80 443
+EXPOSE 3000
 
 # Use a script to start both NGINX and your Node app
 COPY start.sh /start.sh
