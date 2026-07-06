@@ -126,6 +126,39 @@ export default function SiteDetailPage() {
 
   const siteDeployments = deployments || [];
 
+  // Fetch local deployment history from local_storage
+  const { data: localHistory, isLoading: historyLoading } = useQuery<any[]>({
+    queryKey: ["localHistory", siteId],
+    queryFn: async () => {
+      const res = await api.get(`/deployments/${siteId}/history`);
+      return res.data;
+    },
+    refetchInterval: (query) => {
+      // Refresh local history if any deployments are active
+      const hasActive = siteDeployments.some(
+        (d) => d.status === "deploying" || d.status === "pending"
+      );
+      return hasActive ? 10000 : false;
+    },
+  });
+
+  // Rollback deployment mutation
+  const rollbackMutation = useMutation({
+    mutationFn: async (deploymentId: string) => {
+      const res = await api.post(`/deployments/${siteId}/rollback/${deploymentId}`);
+      return res.data;
+    },
+    onSuccess: () => {
+      showToast("Rollback successful! Site updated.");
+      queryClient.invalidateQueries({ queryKey: ["localHistory", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["site", siteId] });
+      queryClient.invalidateQueries({ queryKey: ["deployments", siteId] });
+    },
+    onError: (err: Error) => {
+      showToast(err.message || "Rollback failed", "error");
+    },
+  });
+
   // 3. Trigger site deployment mutation
   const triggerDeployMutation = useMutation({
     mutationFn: async () => {
@@ -348,50 +381,22 @@ export default function SiteDetailPage() {
 
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        {/* Main Column (60% width) - Deployment History */}
+        {/* Main Column (60% width) - Deployments History */}
         <section className="md:col-span-3 space-y-4">
           <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 select-none">
+            <div className="flex items-center justify-between mb-3 select-none">
               <h2 className="text-xs uppercase tracking-wider text-[#555] font-semibold">
-                Deployment History
+                Deployments
               </h2>
-
-              {/* Filter tabs */}
-              <div className="flex bg-[#0A0A0A] border border-[#222] rounded-full p-0.5 text-[10px]">
-                <button
-                  onClick={() => { setFilterTab("all"); setCurrentPage(1); }}
-                  className={`px-3 py-0.5 rounded-full transition-colors cursor-pointer ${
-                    filterTab === "all" ? "bg-[#1A1A1A] text-[#EDEDED]" : "text-[#555] hover:text-[#888]"
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => { setFilterTab("live"); setCurrentPage(1); }}
-                  className={`px-3 py-0.5 rounded-full transition-colors cursor-pointer ${
-                    filterTab === "live" ? "bg-[#1A1A1A] text-[#EDEDED]" : "text-[#555] hover:text-[#888]"
-                  }`}
-                >
-                  Live
-                </button>
-                <button
-                  onClick={() => { setFilterTab("failed"); setCurrentPage(1); }}
-                  className={`px-3 py-0.5 rounded-full transition-colors cursor-pointer ${
-                    filterTab === "failed" ? "bg-[#1A1A1A] text-[#EDEDED]" : "text-[#555] hover:text-[#888]"
-                  }`}
-                >
-                  Failed
-                </button>
-              </div>
             </div>
 
-            {deplsLoading ? (
+            {historyLoading || deplsLoading ? (
               <div className="flex justify-center items-center py-12">
                 <Loader2 className="animate-spin text-[#555]" size={20} />
               </div>
-            ) : filteredDeployments.length === 0 ? (
+            ) : !localHistory || localHistory.length === 0 ? (
               <div className="border border-[#222] rounded-lg p-8 text-center bg-[#0A0A0A] select-none">
-                <span className="text-xs text-[#555] block mb-2">No deployments matching filters</span>
+                <span className="text-xs text-[#555] block mb-2">No deployments found</span>
                 <Button variant="secondary" size="sm" className="cursor-pointer text-xs" onClick={() => triggerDeployMutation.mutate()}>
                   Trigger initial deploy
                 </Button>
@@ -402,81 +407,62 @@ export default function SiteDetailPage() {
                   <table className="w-full text-left border-collapse min-w-[500px]">
                     <thead>
                       <tr className="bg-[#111] border-b border-[#222] text-[10px] text-[#555] uppercase tracking-wider font-semibold select-none">
-                        <th className="px-4 py-2">Trigger</th>
-                        <th className="px-4 py-2">Status</th>
+                        <th className="px-4 py-2">Deployment ID</th>
+                        <th className="px-4 py-2">Date</th>
                         <th className="px-4 py-2">Pages</th>
-                        <th className="px-4 py-2">Files</th>
-                        <th className="px-4 py-2">Started</th>
-                        <th className="px-4 py-2 text-right">Duration</th>
-                        <th className="px-4 py-2 text-center">Changes</th>
+                        <th className="px-4 py-2">Assets</th>
+                        <th className="px-4 py-2">Trigger</th>
+                        <th className="px-4 py-2 text-right">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedDeployments.map((depl) => (
-                        <tr
-                          key={depl.id}
-                          className={`h-10 border-b border-[#222] last:border-0 hover:bg-[#1A1A1A]/40 transition-colors duration-150 text-xs ${
-                            depl.status === "error" ? "bg-[#1F0D0D]/20" : ""
-                          }`}
-                        >
-                          <td className="px-4 py-2 font-medium capitalize text-[#EDEDED]">
-                            {depl.trigger}
-                          </td>
-                          <td className="px-4 py-2">
-                            <Badge status={depl.status === "completed" ? "live" : depl.status} />
-                          </td>
-                          <td className="px-4 py-2 text-[#888]">{depl.pages_crawled}</td>
-                          <td className="px-4 py-2 text-[#888]">{depl.assets_count}</td>
-                          <td className="px-4 py-2 text-[#555]">
-                            {formatRelativeTime(depl.started_at)}
-                          </td>
-                          <td className="px-4 py-2 text-right text-[#888]">
-                            {formatDuration(depl.started_at, depl.completed_at)}
-                          </td>
-                          <td className="px-4 py-2 text-center">
-                            {/* Disabled view diff check tooltip */}
-                            <Tooltip content="Coming soon — will show what changed between deploys">
-                              <button
-                                disabled
-                                className="inline-flex items-center gap-1 text-[10px] text-[#555] hover:text-[#555] cursor-not-allowed select-none bg-transparent border-0 outline-none"
-                              >
-                                <Split size={12} />
-                                <span>Diff</span>
-                              </button>
-                            </Tooltip>
-                          </td>
-                        </tr>
-                      ))}
+                      {localHistory.map((entry) => {
+                        const matchedDepl = siteDeployments.find((d) => d.id === entry.deployment_id);
+                        const pages = matchedDepl ? matchedDepl.pages_crawled : "--";
+                        const assets = matchedDepl ? matchedDepl.assets_count : "--";
+                        const trigger = matchedDepl ? matchedDepl.trigger : "auto";
+                        const isCurrent = entry.status === "live";
+
+                        return (
+                          <tr
+                            key={entry.deployment_id}
+                            className={`h-10 border-b border-[#222] last:border-0 hover:bg-[#1A1A1A]/40 transition-colors duration-150 text-xs ${
+                              isCurrent ? "bg-[#0F2318] border border-[#22C55E]/20" : ""
+                            }`}
+                          >
+                            <td className="px-4 py-2 font-mono text-[11px] text-[#EDEDED]">
+                              {entry.deployment_id.substring(0, 8)}
+                            </td>
+                            <td className="px-4 py-2 text-[#888]">
+                              {formatRelativeTime(entry.created_at)}
+                            </td>
+                            <td className="px-4 py-2 text-[#888]">{pages}</td>
+                            <td className="px-4 py-2 text-[#888]">{assets}</td>
+                            <td className="px-4 py-2 capitalize text-[#888]">{trigger}</td>
+                            <td className="px-4 py-2 text-right">
+                              {isCurrent ? (
+                                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-[#22C55E]/10 text-[#22C55E] border border-[#22C55E]/20">
+                                  <Check size={10} />
+                                  <span>Current</span>
+                                </span>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 text-xs text-[#888] hover:text-[#EDEDED] cursor-pointer"
+                                  onClick={() => rollbackMutation.mutate(entry.deployment_id)}
+                                  loading={rollbackMutation.isPending && rollbackMutation.variables === entry.deployment_id}
+                                >
+                                  Rollback
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
-
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <div className="flex items-center justify-between text-xs text-[#888] select-none px-1">
-                    <span>Page {currentPage} of {totalPages}</span>
-                    <div className="flex items-center gap-1.5">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={currentPage === 1}
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        className="px-2 cursor-pointer h-7"
-                      >
-                        <ChevronLeft size={14} />
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        disabled={currentPage === totalPages}
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        className="px-2 cursor-pointer h-7"
-                      >
-                        <ChevronRight size={14} />
-                      </Button>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>

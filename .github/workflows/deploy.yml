@@ -1,4 +1,4 @@
-name: Deploy Backend - Production
+name: Deploy Frontend - Production
 
 on:
   release:
@@ -10,25 +10,12 @@ on:
         required: true
         type: string
 
-env:
-  ACR_NAME: "convitsaacrprod"
-  RESOURCE_GROUP: "Convitsa-Production"
-  APP_NAME: "hostfast-frontend"
-  IMAGE_NAME: "hostfast-frontend"
-  ENVIRONMENT: "production"
-
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
     environment: production
-    permissions:
-      contents: read
-      id-token: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Get version
         id: version
         run: |
@@ -40,48 +27,37 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "📦 Deploying version: $VERSION"
 
-      - name: Azure Login
-        uses: azure/login@v2
+      - name: Deploy to VM via SSH
+        uses: appleboy/ssh-action@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            set -e
+            cd /home/azureadmin/hostfa.st-frontend && \
+            git fetch --tags origin && \
+            git checkout ${{ steps.version.outputs.version }} && \
+            docker compose up -d --build frontend && \
+            docker image prune -f && \
+            echo "✅ Frontend deployed: ${{ steps.version.outputs.version }}"
 
-      - name: ACR Login
-        run: az acr login --name ${{ env.ACR_NAME }}
-
-      - name: Define image tag
-        id: names
+      - name: Health check
         run: |
-          echo "image_tag=${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}" >> "$GITHUB_OUTPUT"
-          echo "latest_tag=${{ env.ACR_NAME }}.azurecr.io/${{ env.IMAGE_NAME }}:latest" >> "$GITHUB_OUTPUT"
-
-      - name: Build Docker Image
-        run: |
-          docker build \
-            --build-arg NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL }} \
-            -t ${{ steps.names.outputs.image_tag }} \
-            -f Dockerfile .
-
-      - name: Push Docker Image
-        run: |
-          docker push ${{ steps.names.outputs.image_tag }}
-          docker tag ${{ steps.names.outputs.image_tag }} ${{ steps.names.outputs.latest_tag }}
-          docker push ${{ steps.names.outputs.latest_tag }}
-
-      - name: Deploy to Azure Web App (container)
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: ${{ env.APP_NAME }}
-          images: "${{ steps.names.outputs.image_tag }}"
+          sleep 15
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://app.hostfa.st)
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Health check passed"
+          else
+            echo "❌ Health check failed: $STATUS"
+            exit 1
+          fi
 
       - name: Deployment Summary
         run: |
-          echo "## 🚀 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Frontend Deployment" >> $GITHUB_STEP_SUMMARY
           echo "- **Version:** ${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **App Name:** ${{ env.APP_NAME }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Image:** ${{ steps.names.outputs.image_tag }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Environment:** ${{ env.ENVIRONMENT }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **VM:** ${{ secrets.VM_HOST }}" >> $GITHUB_STEP_SUMMARY
           if [ "${{ github.event_name }}" = "release" ]; then
             echo "- **Release:** [${{ github.event.release.name }}](${{ github.event.release.html_url }})" >> $GITHUB_STEP_SUMMARY
           fi
