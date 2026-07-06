@@ -49,7 +49,7 @@ jobs:
       - name: Health check
         run: |
           sleep 15
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://app.hostfa.st)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://hostfa.st)
           if [ "$STATUS" = "200" ]; then
             echo "✅ Health check passed"
           else
